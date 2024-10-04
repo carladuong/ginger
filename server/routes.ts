@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Friending, Posting, Sessioning } from "./app";
+import { Authing, Friending, Grouping, Labeling, Posting, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
@@ -151,6 +151,93 @@ class Routes {
     const user = Sessioning.getUser(session);
     const fromOid = (await Authing.getUserByUsername(from))._id;
     return await Friending.rejectRequest(fromOid, user);
+  }
+
+  @Router.get("/labels/items/:labelName")
+  async getItemsWithLabel(session: SessionDoc, labelName: string) {
+    return Labeling.findItemsByLabel(labelName);
+  }
+
+  @Router.get("/posts/labels/:id")
+  async postLabels(session: SessionDoc, id: ObjectId) {
+    return Labeling.getItemLabels(id);
+  }
+
+  @Router.post("/labels/create/:labelName")
+  async createLabel(session: SessionDoc, labelName: string) {
+    return Labeling.createLabel(labelName);
+  }
+
+  @Router.post("/labels/add")
+  async addLabel(session: SessionDoc, labelName: string, post: ObjectId) {
+    return Labeling.affixLabel(post, labelName);
+  }
+
+  @Router.delete("/labels/remove")
+  async removeLabel(session: SessionDoc, labelName: string, post: ObjectId) {
+    return Labeling.removeLabel(post, labelName);
+  }
+
+  @Router.get("/groups/members/:groupName")
+  async getGroupMembers(session: SessionDoc, groupName: string) {
+    return Grouping.getMembers(groupName);
+  }
+
+  @Router.get("/user/groups/:userId")
+  async getUserGroups(session: SessionDoc, userId: ObjectId) {
+    return Grouping.getGroupsForUser(userId);
+  }
+
+  @Router.get("/groups")
+  async getAllGroups(session: SessionDoc) {
+    return Grouping.getGroups();
+  }
+
+  @Router.post("/groups/join/:groupName")
+  async joinGroup(session: SessionDoc, groupName: string) {
+    const user = Sessioning.getUser(session);
+    return Grouping.joinGroup(user, groupName);
+  }
+
+  @Router.delete("/groups/leave/:groupName")
+  async leaveGroup(session: SessionDoc, groupName: string) {
+    const user = Sessioning.getUser(session);
+    return Grouping.leaveGroup(user, groupName);
+  }
+
+  @Router.post("/groups/create/:groupName")
+  async createGroup(session: SessionDoc, groupName: string) {
+    return Grouping.createGroup(groupName);
+  }
+
+  @Router.post("/matches/find")
+  async findMatches() {
+    throw new Error("Not yet implemented");
+  }
+
+  @Router.post("/post/comments/add")
+  async addComment() {
+    throw new Error("Not yet implemented");
+  }
+
+  @Router.delete("/post/comments/delete")
+  async deleteComment() {
+    throw new Error("Not yet implemented");
+  }
+
+  @Router.get("/chats")
+  async getChats() {
+    throw new Error("Not yet implemented");
+  }
+
+  @Router.post("/chats/start/:user")
+  async startChat() {
+    throw new Error("Not yet implemented");
+  }
+
+  @Router.post("/chats/send/:user")
+  async sendMessage() {
+    throw new Error("Not yet implemented");
   }
 }
 
