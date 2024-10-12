@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 
 import DocCollection, { BaseDoc } from "../framework/doc";
+import { NotAllowedError, NotFoundError } from "./errors";
 
 export interface LabelDoc extends BaseDoc {
   labelName: string;
@@ -15,25 +16,39 @@ export default class LabelingConcept {
   }
 
   async createLabel(labelName: string) {
+    const existing = await this.labels.readOne({ labelName });
+    if (existing) {
+      throw new NotAllowedError("Label already exists!");
+    }
     const _id = await this.labels.createOne({ labelName: labelName, itemIds: [] });
     return { msg: "Label successfully created!", label: await this.labels.readOne({ _id }) };
   }
 
   async affixLabel(itemId: ObjectId, labelName: string) {
     const labelObject = await this.labels.readOne({ labelName });
-    const newLabeledItems = labelObject?.itemIds.push(itemId);
-    return { msg: "Label added to item!" };
+    if (labelObject) {
+      const newLabeledItems = labelObject?.itemIds.push(itemId);
+      return { msg: "Label added to item!" };
+    }
+    throw new NotFoundError("Label does not exist!");
   }
 
   async removeLabel(itemId: ObjectId, labelName: string) {
     const labelObject = await this.labels.readOne({ labelName });
-    const newLabeledItems = labelObject?.itemIds.filter((element) => element !== itemId);
+    if (!labelObject) {
+      throw new NotFoundError("Label does not exist!");
+    }
+    const newLabeledItems = labelObject.itemIds.filter((element) => element !== itemId);
     this.labels.partialUpdateOne({ itemId }, { itemIds: newLabeledItems });
     return { msg: "Label removed from item!" };
   }
 
   async findItemsByLabel(labelName: string) {
-    return await this.labels.readMany({ labelName });
+    const labelObject = await this.labels.readOne({ labelName });
+    if (labelObject) {
+      return labelObject.itemIds;
+    }
+    throw new NotFoundError("Label does not exist!");
   }
 
   async getItemLabels(itemId: ObjectId) {

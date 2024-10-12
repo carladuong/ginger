@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Friending, Grouping, Labeling, Posting, Sessioning } from "./app";
+import { Authing, Commenting, Friending, LabelingPosts, LabelingUsers, Matching, Messaging, Posting, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
@@ -153,91 +153,100 @@ class Routes {
     return await Friending.rejectRequest(fromOid, user);
   }
 
-  @Router.get("/labels/items/:labelName")
-  async getItemsWithLabel(session: SessionDoc, labelName: string) {
-    return Labeling.findItemsByLabel(labelName);
-  }
-
-  @Router.get("/posts/labels/:id")
-  async postLabels(session: SessionDoc, id: ObjectId) {
-    return Labeling.getItemLabels(id);
-  }
-
-  @Router.post("/labels/create/:labelName")
-  async createLabel(session: SessionDoc, labelName: string) {
-    return Labeling.createLabel(labelName);
-  }
-
-  @Router.post("/labels/add")
-  async addLabel(session: SessionDoc, labelName: string, post: ObjectId) {
-    return Labeling.affixLabel(post, labelName);
-  }
-
-  @Router.delete("/labels/remove")
-  async removeLabel(session: SessionDoc, labelName: string, post: ObjectId) {
-    return Labeling.removeLabel(post, labelName);
-  }
-
-  @Router.get("/groups/members/:groupName")
-  async getGroupMembers(session: SessionDoc, groupName: string) {
-    return Grouping.getMembers(groupName);
-  }
-
-  @Router.get("/user/groups/:userId")
-  async getUserGroups(session: SessionDoc, userId: ObjectId) {
-    return Grouping.getGroupsForUser(userId);
-  }
-
-  @Router.get("/groups")
-  async getAllGroups(session: SessionDoc) {
-    return Grouping.getGroups();
-  }
-
-  @Router.post("/groups/join/:groupName")
-  async joinGroup(session: SessionDoc, groupName: string) {
+  @Router.post("/communities/create")
+  async createCommunity(session: SessionDoc, communityName: string) {
     const user = Sessioning.getUser(session);
-    return Grouping.joinGroup(user, groupName);
+    await LabelingUsers.createLabel(communityName);
+    await LabelingPosts.createLabel(communityName);
+    return LabelingUsers.affixLabel(user, communityName);
   }
 
-  @Router.delete("/groups/leave/:groupName")
-  async leaveGroup(session: SessionDoc, groupName: string) {
+  @Router.post("/communities/join/:communityName")
+  async joinCommunity(session: SessionDoc, communityName: string) {
     const user = Sessioning.getUser(session);
-    return Grouping.leaveGroup(user, groupName);
+    return await LabelingUsers.affixLabel(user, communityName);
   }
 
-  @Router.post("/groups/create/:groupName")
-  async createGroup(session: SessionDoc, groupName: string) {
-    return Grouping.createGroup(groupName);
+  @Router.delete("/communities/leave/:communityName")
+  async leaveCommunity(session: SessionDoc, communityName: string) {
+    const user = Sessioning.getUser(session);
+    return await LabelingUsers.removeLabel(user, communityName);
   }
 
-  @Router.post("/matches/find")
-  async findMatches() {
-    throw new Error("Not yet implemented");
+  @Router.get("/communities/members/:communityName")
+  async getCommunityMembers(session: SessionDoc, communityName: string) {
+    return await LabelingUsers.findItemsByLabel(communityName);
   }
 
-  @Router.post("/post/comments/add")
-  async addComment() {
-    throw new Error("Not yet implemented");
-  }
-
-  @Router.delete("/post/comments/delete")
-  async deleteComment() {
-    throw new Error("Not yet implemented");
+  @Router.get("/communities/:communityName")
+  async getCommunityPosts(communityName: string) {
+    return await LabelingPosts.findItemsByLabel(communityName);
   }
 
   @Router.get("/chats")
-  async getChats() {
-    throw new Error("Not yet implemented");
+  async getChats(session: SessionDoc) {
+    const user = Sessioning.getUser(session);
+    return await Messaging.getChats(user);
   }
 
-  @Router.post("/chats/start/:user")
-  async startChat() {
-    throw new Error("Not yet implemented");
+  @Router.get("/chats/:chatter")
+  async getChatMessages(session: SessionDoc, chatter: ObjectId) {
+    const user = Sessioning.getUser(session);
+    return await Messaging.getChatMessages(user, chatter);
   }
 
-  @Router.post("/chats/send/:user")
-  async sendMessage() {
-    throw new Error("Not yet implemented");
+  @Router.post("/chats/start")
+  async startChat(session: SessionDoc, chatter: ObjectId) {
+    const user = Sessioning.getUser(session);
+    return await Messaging.startChat(user, chatter);
+  }
+
+  @Router.post("/chats/send/:to")
+  async sendMessage(session: SessionDoc, to: ObjectId, content: string) {
+    const user = Sessioning.getUser(session);
+    return await Messaging.sendMessage(to, user, content);
+  }
+
+  @Router.post("/matches/optin")
+  async optInToMatch(session: SessionDoc) {
+    const user = Sessioning.getUser(session);
+    return await Matching.optIn(user);
+  }
+
+  @Router.delete("/matches/optout")
+  async optOutOfMatch(session: SessionDoc) {
+    const user = Sessioning.getUser(session);
+    return await Matching.optOut(user);
+  }
+
+  @Router.post("/matches")
+  async matchBuddy(session: SessionDoc) {
+    const user = Sessioning.getUser(session);
+    await Matching.optIn(user);
+    const communities = await LabelingUsers.getItemLabels(user);
+    for (const community of communities) {
+      const members = await LabelingUsers.findItemsByLabel(community);
+      for (const member of members) {
+        if ((await Matching.checkIfMatchable(member)) && !(await Matching.checkIfMatched(user, member))) {
+          await Matching.createMatch(user, member);
+          await Messaging.startChat(user, member);
+          break;
+        }
+      }
+    }
+    return { msg: "No matches found." };
+  }
+
+  @Router.post("/post/comments/add")
+  async addComment(session: SessionDoc, parent: ObjectId, content: string) {
+    const user = Sessioning.getUser(session);
+    return await Commenting.addComment(parent, user, content);
+  }
+
+  @Router.delete("/post/comments/delete")
+  async deleteComment(session: SessionDoc, comment: ObjectId) {
+    const user = Sessioning.getUser(session);
+    return await Commenting.deleteComment(comment);
   }
 }
 
