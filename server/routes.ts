@@ -183,6 +183,12 @@ class Routes {
     return await LabelingPosts.findItemsByLabel(communityName);
   }
 
+  @Router.get("/communities")
+  async getUserCommunities(session: SessionDoc) {
+    const user = Sessioning.getUser(session);
+    return await LabelingUsers.getItemLabels(user);
+  }
+
   @Router.get("/chats")
   async getChats(session: SessionDoc) {
     const user = Sessioning.getUser(session);

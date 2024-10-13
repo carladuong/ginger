@@ -81,6 +81,12 @@ const operations: Operation[] = [
     fields: { id: "input" },
   },
   {
+    name: "View My Communities",
+    endpoint: "/api/communities",
+    method: "GET",
+    fields: {},
+  },
+  {
     name: "Create Community",
     endpoint: "/api/communities/create",
     method: "POST",

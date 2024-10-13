@@ -30,7 +30,17 @@ export default class MessagingConcept {
   }
 
   async startChat(chatter1: ObjectId, chatter2: ObjectId) {
-    void this.chats.createOne({ chatter1, chatter2 });
+    const existing = await this.chats.readOne({
+      $or: [
+        { chatter1: chatter1, chatter2: chatter2 },
+        { chatter1: chatter2, chatter2: chatter1 },
+      ],
+    });
+    if (existing) {
+      throw new NotAllowedError("Chat already exists!");
+    }
+    this.chats.createOne({ chatter1, chatter2 });
+    return { msg: "Chat started!" };
   }
 
   async getChats(chatter: ObjectId) {

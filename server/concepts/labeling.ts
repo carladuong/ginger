@@ -25,9 +25,13 @@ export default class LabelingConcept {
   }
 
   async affixLabel(itemId: ObjectId, labelName: string) {
-    const labelObject = await this.labels.readOne({ labelName });
+    const labelObject = await this.labels.readOne({ labelName: labelName });
     if (labelObject) {
-      const newLabeledItems = labelObject?.itemIds.push(itemId);
+      if (labelObject.itemIds.includes(itemId)) {
+        throw new NotAllowedError("Label already added to item!");
+      }
+      labelObject.itemIds.push(itemId);
+      console.log(labelObject);
       return { msg: "Label added to item!" };
     }
     throw new NotFoundError("Label does not exist!");
