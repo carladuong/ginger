@@ -8,6 +8,7 @@ import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
 
 import { z } from "zod";
+import { NotAllowedError } from "./concepts/errors";
 
 /**
  * Web server routes for the app. Implements synchronizations between concepts.
@@ -84,9 +85,24 @@ class Routes {
   }
 
   @Router.post("/posts")
-  async createPost(session: SessionDoc, content: string, options?: PostOptions) {
+  async createPost(session: SessionDoc, content: string, community1: string, community2?: string, community3?: string, options?: PostOptions) {
     const user = Sessioning.getUser(session);
     const created = await Posting.create(user, content, options);
+    if (created.post) {
+      if (community1) {
+        LabelingPosts.affixLabel(created.post._id, community1);
+      } else {
+        throw new NotAllowedError("No community selected!");
+      }
+      if (community2) {
+        LabelingPosts.affixLabel(created.post._id, community2);
+      }
+      if (community3) {
+        LabelingPosts.affixLabel(created.post._id, community3);
+      }
+    } else {
+      throw new NotAllowedError("Post not found.");
+    }
     return { msg: created.msg, post: await Responses.post(created.post) };
   }
 
@@ -180,7 +196,12 @@ class Routes {
 
   @Router.get("/communities/:communityName")
   async getCommunityPosts(communityName: string) {
-    return await LabelingPosts.findItemsByLabel(communityName);
+    const ids = await LabelingPosts.findItemsByLabel(communityName);
+    const posts = [];
+    for (const id of ids) {
+      posts.push(await Posting.getById(id));
+    }
+    return posts;
   }
 
   @Router.get("/communities")
@@ -196,21 +217,24 @@ class Routes {
   }
 
   @Router.get("/chats/:chatter")
-  async getChatMessages(session: SessionDoc, chatter: ObjectId) {
+  async getChatMessages(session: SessionDoc, chatter: string) {
     const user = Sessioning.getUser(session);
-    return await Messaging.getChatMessages(user, chatter);
+    const chatterId = (await Authing.getUserByUsername(chatter))._id;
+    return await Messaging.getChatMessages(user, chatterId);
   }
 
   @Router.post("/chats/start")
-  async startChat(session: SessionDoc, chatter: ObjectId) {
+  async startChat(session: SessionDoc, chatter: string) {
     const user = Sessioning.getUser(session);
-    return await Messaging.startChat(user, chatter);
+    const chatterId = (await Authing.getUserByUsername(chatter))._id;
+    return await Messaging.startChat(user, chatterId);
   }
 
   @Router.post("/chats/send/:to")
-  async sendMessage(session: SessionDoc, to: ObjectId, content: string) {
+  async sendMessage(session: SessionDoc, to: string, content: string) {
     const user = Sessioning.getUser(session);
-    return await Messaging.sendMessage(to, user, content);
+    const toId = (await Authing.getUserByUsername(to))._id;
+    return await Messaging.sendMessage(toId, user, content);
   }
 
   @Router.post("/matches/optin")
@@ -228,7 +252,6 @@ class Routes {
   @Router.post("/match")
   async matchBuddy(session: SessionDoc) {
     const user = Sessioning.getUser(session);
-    await Matching.optIn(user);
     const communities = await LabelingUsers.getItemLabels(user);
     for (const community of communities) {
       const members = await LabelingUsers.findItemsByLabel(community);
@@ -236,7 +259,7 @@ class Routes {
         if ((await Matching.checkIfMatchable(member)) && !(await Matching.checkIfMatched(user, member))) {
           await Matching.createMatch(user, member);
           await Messaging.startChat(user, member);
-          break;
+          return { msg: "Match created!", member };
         }
       }
     }
@@ -244,15 +267,23 @@ class Routes {
   }
 
   @Router.post("/post/comments/add")
-  async addComment(session: SessionDoc, parent: ObjectId, content: string) {
+  async addComment(session: SessionDoc, parentId: string, content: string) {
     const user = Sessioning.getUser(session);
+    const parent = new ObjectId(parentId);
     return await Commenting.addComment(parent, user, content);
   }
 
   @Router.delete("/post/comments/delete")
-  async deleteComment(session: SessionDoc, comment: ObjectId) {
+  async deleteComment(session: SessionDoc, commentId: string) {
     const user = Sessioning.getUser(session);
+    const comment = new ObjectId(commentId);
     return await Commenting.deleteComment(comment);
+  }
+
+  @Router.get("/post/comments")
+  async getComments(postId: string) {
+    const id = new ObjectId(postId);
+    return await Commenting.getItemComments(id);
   }
 }
 

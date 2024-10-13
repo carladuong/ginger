@@ -66,7 +66,7 @@ const operations: Operation[] = [
     name: "Create Post",
     endpoint: "/api/posts",
     method: "POST",
-    fields: { content: "input" },
+    fields: { content: "input", community1: "input", community2: "input", community3: "input" },
   },
   {
     name: "Update Post",
@@ -162,13 +162,19 @@ const operations: Operation[] = [
     name: "Add Comment",
     endpoint: "/api/post/comments/add",
     method: "POST",
-    fields: { parent: "input", content: "input" },
+    fields: { parentId: "input", content: "input" },
   },
   {
     name: "Delete Comments",
     endpoint: "/api/post/comments/delete",
     method: "DELETE",
-    fields: { comment: "input" },
+    fields: { commentId: "input" },
+  },
+  {
+    name: "Get Comments",
+    endpoint: "/api/post/comments",
+    method: "GET",
+    fields: { postId: "input" },
   },
 ];
 

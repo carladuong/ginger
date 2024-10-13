@@ -27,11 +27,10 @@ export default class LabelingConcept {
   async affixLabel(itemId: ObjectId, labelName: string) {
     const labelObject = await this.labels.readOne({ labelName: labelName });
     if (labelObject) {
-      if (labelObject.itemIds.includes(itemId)) {
+      if (labelObject.itemIds.some((id) => id.equals(itemId))) {
         throw new NotAllowedError("Label already added to item!");
       }
-      labelObject.itemIds.push(itemId);
-      console.log(labelObject);
+      await this.labels.partialUpdateOne({ _id: labelObject._id }, { itemIds: labelObject.itemIds.concat(itemId) });
       return { msg: "Label added to item!" };
     }
     throw new NotFoundError("Label does not exist!");
@@ -42,8 +41,8 @@ export default class LabelingConcept {
     if (!labelObject) {
       throw new NotFoundError("Label does not exist!");
     }
-    const newLabeledItems = labelObject.itemIds.filter((element) => element !== itemId);
-    this.labels.partialUpdateOne({ itemId }, { itemIds: newLabeledItems });
+    const newLabeledItems = labelObject.itemIds.filter((element) => !element.equals(itemId));
+    await this.labels.partialUpdateOne({ _id: labelObject._id }, { itemIds: newLabeledItems });
     return { msg: "Label removed from item!" };
   }
 
@@ -59,7 +58,7 @@ export default class LabelingConcept {
     const labels = [];
     const labelObjects = await this.labels.readMany({});
     for (const labelDoc of labelObjects) {
-      if (labelDoc.itemIds.includes(itemId)) {
+      if (labelDoc.itemIds.some((id) => id.equals(itemId))) {
         labels.push(labelDoc.labelName);
       }
     }

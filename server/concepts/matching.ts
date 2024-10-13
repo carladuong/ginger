@@ -8,37 +8,42 @@ export interface MatchDoc extends BaseDoc {
   entity2: ObjectId;
 }
 
+export interface OptDoc extends BaseDoc {
+  entity: ObjectId;
+}
+
 /**
  * concept: Matching [Entity]
  */
 export default class MatchingConcept {
   public readonly matches: DocCollection<MatchDoc>;
-  public readonly matchable: ObjectId[];
+  public readonly matchable: DocCollection<OptDoc>;
 
   /**
    * Make an instance of Matching.
    */
   constructor(collectionName: string) {
     this.matches = new DocCollection<MatchDoc>(collectionName);
-    this.matchable = [];
+    this.matchable = new DocCollection<OptDoc>(collectionName + "_optedin");
   }
 
   async optIn(entity: ObjectId) {
-    if (this.matchable.includes(entity)) {
+    const existing = await this.matchable.readOne({ entity });
+    if (existing) {
       throw new EntityAlreadyOptedInError(entity);
     } else {
-      this.matchable.push(entity);
+      this.matchable.createOne({ entity });
       return { msg: "Successfully opted in to matching!" };
     }
   }
 
   async optOut(entity: ObjectId) {
-    const index = this.matchable.indexOf(entity);
-    if (index > -1) {
-      this.matchable.splice(index, 1);
-      return { msg: "Successfully opted out of matching!" };
-    } else {
+    const existing = await this.matchable.readOne({ entity });
+    if (!existing) {
       throw new EntityNotOptedInError(entity);
+    } else {
+      this.matchable.deleteOne({ entity: entity });
+      return { msg: "Successfully opted out of matching!" };
     }
   }
 
@@ -48,10 +53,17 @@ export default class MatchingConcept {
   }
 
   async checkIfMatchable(entity: ObjectId) {
-    return this.matchable.includes(entity);
+    const existing = await this.matchable.readOne({ entity });
+    if (existing) {
+      return true;
+    }
+    return false;
   }
 
   async checkIfMatched(entity1: ObjectId, entity2: ObjectId) {
+    if (entity1.equals(entity2)) {
+      return true;
+    }
     const match = await this.matches.readOne({
       $or: [
         { entity1: entity1, entity2: entity2 },

@@ -1,7 +1,6 @@
 import { ObjectId } from "mongodb";
 
 import DocCollection, { BaseDoc } from "../framework/doc";
-import { NotAllowedError } from "./errors";
 
 export interface CommentDoc extends BaseDoc {
   parent: ObjectId;
@@ -32,17 +31,7 @@ export default class CommentingConcept {
     return { msg: "Comment deleted successfully!" };
   }
 
-  async getItemComments(_id: ObjectId) {
-    const commentObjects = await this.comments.readMany({ parent: _id });
-    return commentObjects;
-  }
-}
-
-export class PostAuthorNotMatchError extends NotAllowedError {
-  constructor(
-    public readonly author: ObjectId,
-    public readonly _id: ObjectId,
-  ) {
-    super("{0} is not the author of post {1}!", author, _id);
+  async getItemComments(parent: ObjectId) {
+    return await this.comments.readMany({ parent });
   }
 }
