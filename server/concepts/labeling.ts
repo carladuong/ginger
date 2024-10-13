@@ -8,6 +8,9 @@ export interface LabelDoc extends BaseDoc {
   itemIds: ObjectId[];
 }
 
+/**
+ * concept: Labeling [Item]
+ */
 export default class LabelingConcept {
   public readonly labels: DocCollection<LabelDoc>;
 
@@ -52,6 +55,39 @@ export default class LabelingConcept {
       return labelObject.itemIds;
     }
     throw new NotFoundError("Label does not exist!");
+  }
+
+  async checkIfItemLabeled(itemId: ObjectId, labelName: string) {
+    const labels = await this.getItemLabels(itemId);
+    if (labels.includes(labelName)) {
+      return true;
+    }
+    return false;
+  }
+
+  async findItemsByLabels(labelNames: string[]) {
+    if (labelNames.length === 0) {
+      throw new NotAllowedError("Please provide at least one label.");
+    }
+    const candidates = await this.findItemsByLabel(labelNames[0]);
+    if (labelNames.length === 1) {
+      return candidates;
+    }
+    const result = [];
+    for (const candidate of candidates) {
+      const candidateLabels = await this.getItemLabels(candidate);
+      let addCandidate = true;
+      for (const name of labelNames) {
+        if (!candidateLabels.includes(name)) {
+          addCandidate = false;
+          break;
+        }
+      }
+      if (addCandidate) {
+        result.push(candidate);
+      }
+    }
+    return result;
   }
 
   async getItemLabels(itemId: ObjectId) {

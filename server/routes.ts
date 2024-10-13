@@ -2,7 +2,7 @@ import { ObjectId } from "mongodb";
 
 import { Router, getExpressRouter } from "./framework/router";
 
-import { Authing, Commenting, Friending, LabelingPosts, LabelingUsers, Matching, Messaging, Posting, Sessioning } from "./app";
+import { Authing, Commenting, Friending, LabelingLabels, LabelingPosts, LabelingUsers, Matching, Messaging, Posting, Replying, Sessioning } from "./app";
 import { PostOptions } from "./concepts/posting";
 import { SessionDoc } from "./concepts/sessioning";
 import Responses from "./responses";
@@ -177,6 +177,34 @@ class Routes {
     return LabelingUsers.affixLabel(user, communityName);
   }
 
+  @Router.post("/communities/symptoms/:communityName")
+  async addCommonSymptom(session: SessionDoc, communityName: string, symptom: string) {
+    const user = Sessioning.getUser(session);
+    if (!(await LabelingUsers.checkIfItemLabeled(user, communityName))) {
+      throw new NotAllowedError("Must be member of community to contribute to common symptoms.");
+    }
+    const communityLabel = await LabelingPosts.labels.readOne({ labelName: communityName });
+    if (!communityLabel) {
+      throw new NotAllowedError("Community does not exist.");
+    }
+    const symptomLabel = await LabelingLabels.labels.readOne({ labelName: symptom });
+    if (!symptomLabel) {
+      await LabelingLabels.createLabel(symptom);
+    }
+    return await LabelingLabels.affixLabel(communityLabel._id, symptom);
+  }
+
+  @Router.get("/communities/search")
+  async searchBySymptoms(symptoms: string) {
+    const symptomList = symptoms.split(",");
+    const itemIds = await LabelingLabels.findItemsByLabels(symptomList);
+    const result = [];
+    for (const itemId of itemIds) {
+      result.push(await LabelingPosts.labels.readOne({ _id: itemId }));
+    }
+    return result;
+  }
+
   @Router.post("/communities/join")
   async joinCommunity(session: SessionDoc, communityName: string) {
     const user = Sessioning.getUser(session);
@@ -273,6 +301,13 @@ class Routes {
     return await Commenting.addComment(parent, user, content);
   }
 
+  @Router.post("/post/comments/reply")
+  async replyToComment(session: SessionDoc, parentId: string, content: string) {
+    const user = Sessioning.getUser(session);
+    const parent = new ObjectId(parentId);
+    return await Replying.addComment(parent, user, content);
+  }
+
   @Router.delete("/post/comments/delete")
   async deleteComment(session: SessionDoc, commentId: string) {
     const user = Sessioning.getUser(session);
@@ -284,6 +319,12 @@ class Routes {
   async getComments(postId: string) {
     const id = new ObjectId(postId);
     return await Commenting.getItemComments(id);
+  }
+
+  @Router.get("/post/comments/replies")
+  async getRepliesToComment(commentId: string) {
+    const id = new ObjectId(commentId);
+    return await Replying.getItemComments(id);
   }
 }
 

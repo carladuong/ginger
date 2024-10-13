@@ -105,6 +105,18 @@ const operations: Operation[] = [
     fields: { communityName: "input" },
   },
   {
+    name: "Add Common Symptom",
+    endpoint: "/api/communities/symptoms/:communityName",
+    method: "POST",
+    fields: { communityName: "input", symptom: "input" },
+  },
+  {
+    name: "Symptom Search",
+    endpoint: "/api/communities/search",
+    method: "GET",
+    fields: { symptoms: "input" },
+  },
+  {
     name: "Get Community Members",
     endpoint: "/api/communities/members/:communityName",
     method: "GET",
@@ -175,6 +187,18 @@ const operations: Operation[] = [
     endpoint: "/api/post/comments",
     method: "GET",
     fields: { postId: "input" },
+  },
+  {
+    name: "Reply to Comment",
+    endpoint: "/api/post/comments/reply",
+    method: "POST",
+    fields: { parentId: "input", content: "input" },
+  },
+  {
+    name: "Get Replies to Comment",
+    endpoint: "/api/post/comments/replies",
+    method: "GET",
+    fields: { commentId: "input" },
   },
 ];
 
