@@ -161,13 +161,13 @@ class Routes {
     return LabelingUsers.affixLabel(user, communityName);
   }
 
-  @Router.post("/communities/join/:communityName")
+  @Router.post("/communities/join")
   async joinCommunity(session: SessionDoc, communityName: string) {
     const user = Sessioning.getUser(session);
     return await LabelingUsers.affixLabel(user, communityName);
   }
 
-  @Router.delete("/communities/leave/:communityName")
+  @Router.delete("/communities/leave")
   async leaveCommunity(session: SessionDoc, communityName: string) {
     const user = Sessioning.getUser(session);
     return await LabelingUsers.removeLabel(user, communityName);
@@ -219,7 +219,7 @@ class Routes {
     return await Matching.optOut(user);
   }
 
-  @Router.post("/matches")
+  @Router.post("/match")
   async matchBuddy(session: SessionDoc) {
     const user = Sessioning.getUser(session);
     await Matching.optIn(user);

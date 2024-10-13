@@ -80,9 +80,90 @@ const operations: Operation[] = [
     method: "DELETE",
     fields: { id: "input" },
   },
-  //
-  // ...
-  //
+  {
+    name: "Create Community",
+    endpoint: "/api/communities/create",
+    method: "POST",
+    fields: { communityName: "input" },
+  },
+  {
+    name: "Join Community",
+    endpoint: "/api/communities/join",
+    method: "POST",
+    fields: { communityName: "input" },
+  },
+  {
+    name: "Leave Community",
+    endpoint: "/api/communities/leave",
+    method: "DELETE",
+    fields: { communityName: "input" },
+  },
+  {
+    name: "Get Community Members",
+    endpoint: "/api/communities/members/:communityName",
+    method: "GET",
+    fields: { communityName: "input" },
+  },
+  {
+    name: "Get Community Posts",
+    endpoint: "/api/communities/:communityName",
+    method: "GET",
+    fields: { communityName: "input" },
+  },
+  {
+    name: "Get Chats",
+    endpoint: "/api/chats",
+    method: "GET",
+    fields: {},
+  },
+  {
+    name: "Get Chat Messages",
+    endpoint: "/api/chats/:chatter",
+    method: "GET",
+    fields: { chatter: "input" },
+  },
+  {
+    name: "Start Chat",
+    endpoint: "/api/chats/start",
+    method: "POST",
+    fields: { chatter: "input" },
+  },
+  {
+    name: "Send Message",
+    endpoint: "/api/chats/send/:to",
+    method: "POST",
+    fields: { to: "input", content: "input" },
+  },
+  {
+    name: "Opt In To Match",
+    endpoint: "/api/matches/optin",
+    method: "POST",
+    fields: {},
+  },
+  {
+    name: "Opt Out Of Match",
+    endpoint: "/api/matches/optout",
+    method: "DELETE",
+    fields: {},
+  },
+  {
+    name: "Buddy Match",
+    endpoint: "/api/match",
+    method: "POST",
+    fields: {},
+  },
+  {
+    name: "Add Comment",
+    endpoint: "/api/post/comments/add",
+    method: "POST",
+    fields: { parent: "input", content: "input" },
+  },
+  {
+    name: "Delete Comments",
+    endpoint: "/api/post/comments/delete",
+    method: "DELETE",
+    fields: { comment: "input" },
+  },
 ];
 
 /*
