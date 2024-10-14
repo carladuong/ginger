@@ -64,6 +64,49 @@ describe("Create a user and log in", () => {
   });
 });
 
+describe("Create a community and post to it", () => {
+  it("should create and join a community", async () => {
+    const session = getEmptySession();
+
+    await app.logIn(session, "alice", "alice123");
+    await app.createCommunity(session, "Endometriosis");
+    assert.notEqual((await app.getCommunityMembers(session, "Endometriosis")).length, 0);
+    await assert.rejects(app.createCommunity(session, "Endometriosis"));
+  });
+
+  it("should create post in community", async () => {
+    const session = getEmptySession();
+
+    await app.logIn(session, "bob", "bob123");
+    await app.createCommunity(session, "OCD");
+    await app.createPost(session, "hello!", "OCD");
+    assert.notEqual((await app.getCommunityPosts("OCD")).length, 0);
+  });
+});
+
+describe("Start chat and send a message to another user", () => {
+  it("should send a message to another user", async () => {
+    const session = getEmptySession();
+
+    await app.logIn(session, "alice", "alice123");
+    await app.startChat(session, "bob");
+    assert.rejects(app.startChat(session, "bob"));
+    await app.sendMessage(session, "bob", "hi bob");
+    assert.notEqual((await app.getChatMessages(session, "bob")).length, 0);
+  });
+});
+
+describe("Symptom search", () => {
+  it("should add known symptom to community ", async () => {
+    const session = getEmptySession();
+
+    await app.logIn(session, "alice", "alice123");
+    await app.createCommunity(session, "JIA");
+    await app.addCommonSymptom(session, "JIA", "joint pain");
+    assert.equal((await app.searchBySymptoms("joint pain"))[0]?.labelName, "JIA");
+  });
+});
+
 /*
  * As you add more tests, remember to put them inside `describe` blocks.
  */

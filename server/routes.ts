@@ -177,7 +177,7 @@ class Routes {
     return LabelingUsers.affixLabel(user, communityName);
   }
 
-  @Router.post("/communities/symptoms/:communityName")
+  @Router.post("/communities/symptoms/add")
   async addCommonSymptom(session: SessionDoc, communityName: string, symptom: string) {
     const user = Sessioning.getUser(session);
     if (!(await LabelingUsers.checkIfItemLabeled(user, communityName))) {
@@ -192,6 +192,19 @@ class Routes {
       await LabelingLabels.createLabel(symptom);
     }
     return await LabelingLabels.affixLabel(communityLabel._id, symptom);
+  }
+
+  @Router.delete("/communities/symptoms/delete")
+  async deleteCommonSymptom(session: SessionDoc, communityName: string, symptom: string) {
+    const user = Sessioning.getUser(session);
+    if (!(await LabelingUsers.checkIfItemLabeled(user, communityName))) {
+      throw new NotAllowedError("Must be member of community to contribute to common symptoms.");
+    }
+    const communityLabel = await LabelingPosts.labels.readOne({ labelName: communityName });
+    if (!communityLabel) {
+      throw new NotAllowedError("Community does not exist.");
+    }
+    return await LabelingLabels.removeLabel(communityLabel._id, symptom);
   }
 
   @Router.get("/communities/search")

@@ -106,8 +106,14 @@ const operations: Operation[] = [
   },
   {
     name: "Add Common Symptom",
-    endpoint: "/api/communities/symptoms/:communityName",
+    endpoint: "/api/communities/symptoms/add",
     method: "POST",
+    fields: { communityName: "input", symptom: "input" },
+  },
+  {
+    name: "Remove Common Symptom",
+    endpoint: "/api/communities/symptoms/delete",
+    method: "DELETE",
     fields: { communityName: "input", symptom: "input" },
   },
   {
